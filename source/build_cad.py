@@ -310,13 +310,28 @@ hz0, hz1 = -20.5, -7.0
 hang = cq.Solid.makeBox(16, 41, hz1 - hz0, V(-8, A[1] - 30, hz0))
 hang = hang.cut(cyl(A[0], A[1], ROD_PRESS, hz0 - 1, hz1 + 1)).cut(cq.Solid.makeBox(1.2, 12, 20, V(-0.6, A[1], hz0 - 1)))
 hang = hang.cut(cyl_dir((-10, A[1] + 6.5, PZ), (1, 0, 0), 1.65 + X, 20)).cut(cyl_dir((0, A[1] - 31, PZ), (0, 1, 0), TAP4_R, 21))
-add("pendulum_hanger", "振り子ハンガー（M3で軸にクランプ）", hang, group="anchor", color="anchor")
+
+# 2026-10-17: the hanger and the bob are printed as two halves split at z = PZ, the plane that holds the axes of their
+# horizontal holes. Each half prints split face up, so the holes become open half-round grooves (no support inside),
+# and the halves are glued. Two pegs on the rear half locate the front half.
+PEG_R, PEG_H = 1.5, 2.0
+def split_glue(solid, z, pegs, ja, name, **kw):
+    big = 500.0
+    rear = solid.intersect(cq.Solid.makeBox(big, big, big, V(-big / 2, -big / 2, z - big)))
+    front = solid.intersect(cq.Solid.makeBox(big, big, big, V(-big / 2, -big / 2, z)))
+    for x, y in pegs:
+        rear = rear.fuse(cyl(x, y, PEG_R, z - 0.5, z + PEG_H))
+        front = front.cut(cyl(x, y, PEG_R + X, z - 0.1, z + PEG_H + 0.4))
+    add(name + "_rear", ja + " 後ろ半分（ピンつき・接着）", rear, **kw)
+    add(name + "_front", ja + " 前半分（接着）", front, print_rot=("x", 180), **kw)
+
+split_glue(hang, PZ, [(4.8, A[1] - 22.0), (-4.8, A[1] - 4.0)], "振り子ハンガー", "pendulum_hanger", group="anchor", color="anchor")
 add("pendulum_rod", "M4 全ねじ 285 mm（ハンガーに15 mm差し込む）", cyl_dir((0, A[1] - 300, PZ), (0, 1, 0), 2.0, 285), group="anchor", color="steel", kind="hardware")
 BOB_C = (0.0, A[1] - D.BOB_Y)
 bob = cyl(BOB_C[0], BOB_C[1], 35.0, PZ - 8, PZ + 8).cut(cyl_dir((0, BOB_C[1] - 40, PZ), (0, 1, 0), 2.3 + X, 80))
 for sx in (-1, 1):
     bob = bob.cut(cyl(sx * 18.0, BOB_C[1], 12.3, PZ - 4, PZ + 9))
-add("bob", "振り玉 φ70（ポケットに硬貨など）", bob, group="anchor", color="bob")
+split_glue(bob, PZ, [(18.0, BOB_C[1] + 22.0), (-18.0, BOB_C[1] - 22.0)], "振り玉 φ70", "bob", group="anchor", color="bob")
 ny1 = BOB_C[1] - 35.0 - 0.5
 nut = cyl_dir((0, ny1 - 9, PZ), (0, 1, 0), 9.0, 9).cut(cyl_dir((0, ny1 - 10, PZ), (0, 1, 0), 2.2 + X, 12))
 hexp = prism_poly(hexagon(HEX_M4), 0, 3.6).rotate(V(0, 0, 0), V(1, 0, 0), -90).translate(V(0, ny1 - 3.5, PZ))
