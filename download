@@ -1,0 +1,3 @@
+*.stl binary
+*.step -diff linguist-generated
+*.pdf binary
