@@ -91,9 +91,9 @@ def add(name, ja, solid, group="static", color="plate", kind="print", print_rot=
 C, G, E, T, A, M, H, P, D0 = D.C, D.G, D.E, D.T, D.A, D.M, D.H, D.P, D.D0
 GAP, PT = D.GAP, D.PLATE_T
 BELL = D.BELL
-# Hole sizes (diameters). 2026-10-12: set after the first prints came out too tight. 2026-10-13: nut and key hexes opened up. 2026-10-17: rod press 3.3, bearing pocket 10.3.
+# Hole sizes (diameters). 2026-10-12: set after the first prints came out too tight. 2026-10-13: nut and key hexes opened up. 2026-10-17: rod press 3.3, bearing pocket 10.3, running hole 3.6.
 ROD_PRESS = 3.30 / 2   # phi3 rod pressed into a part, plate or the pendulum hanger (was 2.95 / 3.0; 3.2 on 10-12)
-ROD_FREE  = 3.50 / 2   # part that turns on a phi3 rod: great wheel, drum, minute wheel, hammer (was 3.3)
+ROD_FREE  = 3.60 / 2   # part that turns on a phi3 rod: great wheel, drum, minute wheel, hammer (was 3.3; 3.5 on 10-12)
 BRG_R     = 10.3 / 2   # 623ZZ pocket (was 10.1; 10.2 on 10-12)
 M3_R      = 3.50 / 2   # M3 clearance: plates, pillars, standoffs, spacers, wall frame, dial, drum flange (was 3.4)
 TAP3_R    = 2.80 / 2   # M3 self-tapping pilot (was 2.6)
