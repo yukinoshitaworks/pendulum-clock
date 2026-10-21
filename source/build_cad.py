@@ -92,9 +92,11 @@ C, G, E, T, A, M, H, P, D0 = D.C, D.G, D.E, D.T, D.A, D.M, D.H, D.P, D.D0
 GAP, PT = D.GAP, D.PLATE_T
 BELL = D.BELL
 # Hole sizes (diameters). 2026-10-12: set after the first prints came out too tight. 2026-10-13: nut and key hexes opened up. 2026-10-17: rod press 3.3, bearing pocket 10.3, running hole 3.6.
-ROD_PRESS = 3.30 / 2   # phi3 rod pressed into a part, plate or the pendulum hanger (was 2.95 / 3.0; 3.2 on 10-12)
+# 2026-10-21: test assembly on a Creality K1 with Hyper PLA-CF: press holes and bearing pockets still too tight.
+# K1 prints small holes 0.3-0.7 mm under size (more for smaller holes), so press 3.45 and pocket 10.4.
+ROD_PRESS = 3.45 / 2   # phi3 rod pressed into a part, plate or the pendulum hanger (was 2.95 / 3.0; 3.2 on 10-12, 3.3 on 10-17)
 ROD_FREE  = 3.60 / 2   # part that turns on a phi3 rod: great wheel, drum, minute wheel, hammer (was 3.3; 3.5 on 10-12)
-BRG_R     = 10.3 / 2   # 623ZZ pocket (was 10.1; 10.2 on 10-12)
+BRG_R     = 10.4 / 2   # 623ZZ pocket (was 10.1; 10.2 on 10-12, 10.3 on 10-17)
 M3_R      = 3.50 / 2   # M3 clearance: plates, pillars, standoffs, spacers, wall frame, dial, drum flange (was 3.4)
 TAP3_R    = 2.80 / 2   # M3 self-tapping pilot (was 2.6)
 TAP4_R    = 3.50 / 2   # M4 pilot: bell post, pendulum rod into the hanger (was 3.3 / 3.4)
@@ -288,6 +290,9 @@ dial = dial.fuse(prism_poly(unary_union(marks), 55.9, 57.0))
 for p in (P[2], P[3], D0):
     dial = dial.cut(cyl(p[0], p[1], M3_R, 52, 58))
 dial = dial.cut(cone(D0[0], D0[1], M3_R, 3.3, 55.4, 57.01))
+# 2026-10-21: winding hole. The key boss (r 9.5) on the drum hex at G cut 2.5 mm into the ring's inner edge.
+KEY_R = 9.5
+dial = dial.cut(cyl(G[0], G[1], KEY_R + 1.5, 52.0, 58.0))
 add("dial_ring", "文字盤リング", dial, color="dial")
 for i, p in enumerate((P[2], P[3])):
     add(f"dial_standoff_{i+1}", "文字盤スタンドオフ (12 mm)", tube(p[0], p[1], 5, M3_R, ZO, 53.0), color="pillar", share="dial_standoff_12_x2")
@@ -345,7 +350,10 @@ wsh = wsh.cut(cyl(WX, W_TOP - 8, 1.65 + X, WZ - 30, WZ + 30))
 add("weight_shell", "おもり容器 φ50×200（鉄球などを充填）", wsh, group="weight", color="weight", print_rot=("x", 90))
 add("weight_pin", "φ3 丸棒 55 mm（ひも掛け）", cyl(WX, W_TOP - 8, 1.5, WZ - 27.5, WZ + 27.5), group="weight", color="steel", kind="hardware")
 KX, KY = -125.0, -60.0
-key = cq.Solid.makeBox(60, 12, 6, V(KX - 30, KY - 6, 0)).fuse(cyl(KX, KY, 9.5, 0, 22)).cut(prism_poly(hexagon(HEX_KEY), 9, 23, at=(KX, KY)))
+# 2026-10-21: boss 22 -> 29 mm so that the handle turns in front of the dial (57.0) and the hands (62.9):
+# seated on the drum shoulder (z 41.6) the handle now spans z 64.6..70.6. Pocket depth (13 mm) unchanged.
+KEY_L = 29.0
+key = cq.Solid.makeBox(60, 12, 6, V(KX - 30, KY - 6, 0)).fuse(cyl(KX, KY, KEY_R, 0, KEY_L)).cut(prism_poly(hexagon(HEX_KEY), KEY_L - 13, KEY_L + 1, at=(KX, KY)))
 add("winding_key", "巻きカギ（六角10 mm）", key, group="accessory", color="accent")
 
 # ------------------------------------------------------------------ outputs
