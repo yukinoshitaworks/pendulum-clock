@@ -320,13 +320,16 @@ hang = hang.cut(cyl_dir((-10, A[1] + 6.5, PZ), (1, 0, 0), 1.65 + X, 20)).cut(cyl
 # horizontal holes. Each half prints split face up, so the holes become open half-round grooves (no support inside),
 # and the halves are glued. Two pegs on the rear half locate the front half.
 PEG_R, PEG_H = 1.5, 2.0
+# 2026-10-22: the peg hole was PEG_R + X (phi 3.2) and the printed peg did not go in on the K1. A printed phi-3 peg in a
+# printed hole behaves like the phi-3 rod in a running hole, which was fine at 3.6, so use the same size.
+PEG_HOLE_R = ROD_FREE
 def split_glue(solid, z, pegs, ja, name, **kw):
     big = 500.0
     rear = solid.intersect(cq.Solid.makeBox(big, big, big, V(-big / 2, -big / 2, z - big)))
     front = solid.intersect(cq.Solid.makeBox(big, big, big, V(-big / 2, -big / 2, z)))
     for x, y in pegs:
         rear = rear.fuse(cyl(x, y, PEG_R, z - 0.5, z + PEG_H))
-        front = front.cut(cyl(x, y, PEG_R + X, z - 0.1, z + PEG_H + 0.4))
+        front = front.cut(cyl(x, y, PEG_HOLE_R, z - 0.1, z + PEG_H + 0.4))
     add(name + "_rear", ja + " 後ろ半分（ピンつき・接着）", rear, **kw)
     add(name + "_front", ja + " 前半分（接着）", front, print_rot=("x", 180), **kw)
 
