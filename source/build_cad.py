@@ -102,6 +102,7 @@ M3_R      = 3.50 / 2   # M3 clearance: plates, pillars, standoffs, spacers, wall
 TAP3_R    = 2.80 / 2   # M3 self-tapping pilot (was 2.6)
 TAP4_R    = 3.50 / 2   # M4 pilot: bell post, pendulum rod into the hanger (was 3.3 / 3.4)
 X         = 0.2 / 2    # every other bore and pin hole: +0.2 on the diameter
+PEND_M4 = 0.2 / 2      # 2026-10-23: M4 holes of the pendulum (rod into the hanger, bob and rating-nut bores) another +0.2
 HEX_M3, HEX_M4, HEX_KEY = 5.9, 7.3, 10.5   # across flats: M3 nut (wall frame), M4 nut (rating nut), winding key (was 5.8 / 7.2 / 10.4)
 TIP_R = 2.7
 
@@ -238,7 +239,9 @@ ep = ep.fuse(gear_solid(D.e_pin)).fuse(cyl(E[0], E[1], TIP_R, 21.9, 35.7)).cut(c
 add("escape_wheel", "ガンギ車 30枚＋カナ8枚", ep, group="escape", color="escape")
 add("spacer_E_rear", "スペーサ 8.7 mm", tube(E[0], E[1], TIP_R, 1.6 + X, 0.3, 9.0), group="escape", color="pillar")
 
-an = prism_poly(D.anchor_polygon(), 8.5, 14.5, at=A).fuse(cyl(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 40))
+# 2026-10-23: the 27 mm press along the whole anchor bore was too tight. Press only in the pallet body (z 8.5-14.5);
+# the hub towards the front bearing gets the running size as a relief.
+an = prism_poly(D.anchor_polygon(), 8.5, 14.5, at=A).fuse(cyl(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 14.5)).cut(cyl(A[0], A[1], ROD_FREE, 14.5, 40))
 add("anchor", "アンクル（グラハム式デッドビート）", an, group="anchor", color="anchor")
 add("spacer_A_rear", "スペーサ 8.2 mm", tube(A[0], A[1], TIP_R, 1.6 + X, 0.3, 8.5), group="anchor", color="pillar")
 
@@ -315,7 +318,7 @@ PZ = D.PEND_Z
 hz0, hz1 = -20.5, -7.0
 hang = cq.Solid.makeBox(16, 41, hz1 - hz0, V(-8, A[1] - 30, hz0))
 hang = hang.cut(cyl(A[0], A[1], ROD_PRESS, hz0 - 1, hz1 + 1)).cut(cq.Solid.makeBox(1.2, 12, 20, V(-0.6, A[1], hz0 - 1)))
-hang = hang.cut(cyl_dir((-10, A[1] + 6.5, PZ), (1, 0, 0), 1.65 + X, 20)).cut(cyl_dir((0, A[1] - 31, PZ), (0, 1, 0), TAP4_R, 21))
+hang = hang.cut(cyl_dir((-10, A[1] + 6.5, PZ), (1, 0, 0), 1.65 + X, 20)).cut(cyl_dir((0, A[1] - 31, PZ), (0, 1, 0), TAP4_R + PEND_M4, 21))
 
 # 2026-10-17: the hanger and the bob are printed as two halves split at z = PZ, the plane that holds the axes of their
 # horizontal holes. Each half prints split face up, so the holes become open half-round grooves (no support inside),
@@ -337,12 +340,12 @@ def split_glue(solid, z, pegs, ja, name, **kw):
 split_glue(hang, PZ, [(4.8, A[1] - 22.0), (-4.8, A[1] - 4.0)], "振り子ハンガー", "pendulum_hanger", group="anchor", color="anchor")
 add("pendulum_rod", "M4 全ねじ 285 mm（ハンガーに15 mm差し込む）", cyl_dir((0, A[1] - 300, PZ), (0, 1, 0), 2.0, 285), group="anchor", color="steel", kind="hardware")
 BOB_C = (0.0, A[1] - D.BOB_Y)
-bob = cyl(BOB_C[0], BOB_C[1], 35.0, PZ - 8, PZ + 8).cut(cyl_dir((0, BOB_C[1] - 40, PZ), (0, 1, 0), 2.3 + X, 80))
+bob = cyl(BOB_C[0], BOB_C[1], 35.0, PZ - 8, PZ + 8).cut(cyl_dir((0, BOB_C[1] - 40, PZ), (0, 1, 0), 2.3 + X + PEND_M4, 80))
 for sx in (-1, 1):
     bob = bob.cut(cyl(sx * 18.0, BOB_C[1], 12.3, PZ - 4, PZ + 9))
 split_glue(bob, PZ, [(18.0, BOB_C[1] + 22.0), (-18.0, BOB_C[1] - 22.0)], "振り玉 φ70", "bob", group="anchor", color="bob")
 ny1 = BOB_C[1] - 35.0 - 0.5
-nut = cyl_dir((0, ny1 - 9, PZ), (0, 1, 0), 9.0, 9).cut(cyl_dir((0, ny1 - 10, PZ), (0, 1, 0), 2.2 + X, 12))
+nut = cyl_dir((0, ny1 - 9, PZ), (0, 1, 0), 9.0, 9).cut(cyl_dir((0, ny1 - 10, PZ), (0, 1, 0), 2.2 + X + PEND_M4, 12))
 hexp = prism_poly(hexagon(HEX_M4), 0, 3.6).rotate(V(0, 0, 0), V(1, 0, 0), -90).translate(V(0, ny1 - 3.5, PZ))
 add("rating_nut", "歩度調整ナット（M4ナット内蔵）", nut.cut(hexp), group="anchor", color="accent", print_rot=("x", 90))
 
