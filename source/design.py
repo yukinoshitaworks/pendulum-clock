@@ -120,8 +120,10 @@ def pair(wheel, pinion):
     return a, eps
 
 
-great = Gear("great", 72, 1.5, -0.30, G, 9.0, 14.0)
-c_pin = Gear("centre pinion", 12, 1.5, 0.30, C, 7.0, 15.0)
+# 2026-10-23: 72/12 -> 63/21 (same centre distance 63 mm). With a 1 kg weight the escape arbor did not turn;
+# halving the drum-to-centre ratio (6 -> 3) doubles the torque everywhere downstream. Run time 54 h -> 27 h.
+great = Gear("great", 63, 1.5, -0.15, G, 9.0, 14.0)
+c_pin = Gear("centre pinion", 21, 1.5, 0.15, C, 7.0, 15.0)
 c_whl = Gear("centre wheel", 96, 1.0, -0.45, C, 2.0, 7.0)
 t_pin = Gear("third pinion", 8, 1.0, 0.45, T, 1.5, 15.5)
 t_whl = Gear("third wheel", 80, 1.0, -0.45, T, 15.5, 20.5)

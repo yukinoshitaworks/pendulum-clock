@@ -177,25 +177,46 @@ PEG_R, PEG_A = 26.0, [radians(60 + 120 * k) for k in range(3)]
 for a in PEG_A:
     gw = gw.cut(cyl(G[0] + PEG_R * cos(a), G[1] + PEG_R * sin(a), 2.6 + X, 8, 15))
 gw = gw.cut(cyl(G[0], G[1], ROD_FREE, -1, 20))
-add("great_wheel", "一番車 72枚 (m1.5)", gw, group="great", color="gear1", print_rot=("x", 180))
+add("great_wheel", "一番車 63枚 (m1.5)", gw, group="great", color="gear1", print_rot=("x", 180))
 
-RAT_N, RAT_TIP, RAT_ROOT = 12, 15.0, 12.5
+# 2026-10-23: the ratchet slipped backwards under the weight. The tooth faces were radial, so the load had no
+# component holding the pawls in and only the thin spring arms kept them engaged. Now the faces are undercut by 12 deg
+# (load pulls the pawl into the tooth), the teeth are 3.0 mm deep (was 2.5), the pawls follow the undercut face and the
+# spring arms are 1.8 mm wide (was 1.6) and start from the back of the pawl, clear of the deeper teeth.
+RAT_N, RAT_TIP, RAT_ROOT = 12, 15.5, 12.5
 RAT_PH = radians(10)
+RAT_HOOK_DEG = 12.0
+def _hook_angle():
+    # angular offset of the tooth tip so that the face (root -> tip) leans RAT_HOOK_DEG from radial, over the pawl
+    lo, hi = 0.0, 0.3
+    for _ in range(60):
+        b = (lo + hi) / 2
+        tx, ty = RAT_TIP * cos(b) - RAT_ROOT, RAT_TIP * sin(b)
+        lo, hi = (b, hi) if degrees(atan2(ty, tx)) < RAT_HOOK_DEG else (lo, b)
+    return lo
+RAT_HOOK = _hook_angle()
 def ratchet2d():
     pts = []
     for k in range(RAT_N):
         a = RAT_PH + k * 2 * pi / RAT_N
-        pts += [(RAT_TIP * cos(a), RAT_TIP * sin(a)), (RAT_ROOT * cos(a), RAT_ROOT * sin(a))]
+        pts += [(RAT_TIP * cos(a + RAT_HOOK), RAT_TIP * sin(a + RAT_HOOK)), (RAT_ROOT * cos(a), RAT_ROOT * sin(a))]
     return Polygon(pts)
 
 def click2d():
     parts = [Point(0, 0).buffer(29.5, 24).difference(Point(0, 0).buffer(22.5, 20))]
     pol = lambda r, a: (r * cos(a), r * sin(a))
+    rot = lambda p, a: (p[0] * cos(a) - p[1] * sin(a), p[0] * sin(a) + p[1] * cos(a))
+    # point on the tooth face line (in the frame of a face at angle 0) at radius r
+    fx, fy = RAT_TIP * cos(RAT_HOOK) - RAT_ROOT, RAT_TIP * sin(RAT_HOOK); fl = sqrt(fx * fx + fy * fy); ux, uy = fx / fl, fy / fl
+    def on_face(r):
+        bq = 2 * RAT_ROOT * ux; cq_ = RAT_ROOT ** 2 - r * r; t = (-bq + sqrt(bq * bq - 4 * cq_)) / 2
+        return (RAT_ROOT + t * ux, t * uy)
+    gap = radians(0.6)
     for k in range(3):
         f = RAT_PH + k * 2 * pi / 3
-        arm = [pol(14.4 + (23.0 - 14.4) * i / 26, f + radians(4 + 104 * i / 26)) for i in range(27)]
-        parts.append(LineString(arm).buffer(0.8, 3))
-        parts.append(Polygon([pol(12.9, f + radians(0.25)), pol(15.5, f + radians(0.25)), pol(15.6, f + radians(14)), pol(13.95, f + radians(14))]))
+        arm = [pol(16.2 + (23.0 - 16.2) * i / 26, f + radians(9 + 99 * i / 26)) for i in range(27)]
+        parts.append(LineString(arm).buffer(0.9, 3))
+        parts.append(Polygon([rot(on_face(12.9), f + gap), rot(on_face(15.9), f + gap), pol(16.6, f + radians(11)), pol(14.35, f + radians(14))]))
     return unary_union(parts)
 
 Z_CL0, Z_CL1 = 14.3, 19.6
@@ -221,9 +242,10 @@ add("drum_core", "巻胴（ラチェットつき）", drum_a, group="drum", colo
 add("drum_front", "巻胴 前フランジ（六角巻き軸）", drum_b, group="drum", color="drum")
 
 # ------------------------------------------------------------------ going train
-cp = gear_solid(D.c_whl).cut(spoke_pockets(C, 14.5, D.c_whl.rf - 3.5, 6, 5.0, 2, 7))
+# pockets start outside the centre pinion so the pinion (21 teeth since 2026-10-23) never overhangs a pocket
+cp = gear_solid(D.c_whl).cut(spoke_pockets(C, max(14.5, D.c_pin.ra + 1.5), D.c_whl.rf - 3.5, 6, 5.0, 2, 7))
 cp = cp.fuse(gear_solid(D.c_pin)).fuse(cyl(C[0], C[1], 4.0, 15.0, 23.8)).cut(cyl(C[0], C[1], ROD_PRESS, 0, 30))
-add("centre_wheel", "二番車 96枚＋カナ12枚", cp, group="centre", color="gear2")
+add("centre_wheel", "二番車 96枚＋カナ21枚", cp, group="centre", color="gear2")
 add("spacer_C_rear", "スペーサ 1.7 mm", tube(C[0], C[1], TIP_R, 1.6 + X, 0.3, 2.0), group="centre", color="pillar")
 
 cam = prism_poly(D.cam_polygon(), D.CAM_Z[0], D.CAM_Z[1], at=C).fuse(cyl(C[0], C[1], 4.0, D.CAM_Z[1], 35.7)).cut(cyl(C[0], C[1], ROD_PRESS, 20, 40))
