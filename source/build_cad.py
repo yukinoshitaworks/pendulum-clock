@@ -94,7 +94,8 @@ BELL = D.BELL
 # Hole sizes (diameters). 2026-10-12: set after the first prints came out too tight. 2026-10-13: nut and key hexes opened up. 2026-10-17: rod press 3.3, bearing pocket 10.3, running hole 3.6.
 # 2026-10-21: test assembly on a Creality K1 with Hyper PLA-CF: press holes and bearing pockets still too tight.
 # K1 prints small holes 0.3-0.7 mm under size (more for smaller holes), so press 3.45 and pocket 10.4.
-ROD_PRESS = 3.45 / 2   # phi3 rod pressed into a part, plate or the pendulum hanger (was 2.95 / 3.0; 3.2 on 10-12, 3.3 on 10-17)
+# 2026-10-23: 3.45 turned out too loose for a press fit; 3.40.
+ROD_PRESS = 3.40 / 2   # phi3 rod pressed into a part, plate or the pendulum hanger (was 2.95 / 3.0; 3.2 on 10-12, 3.3 on 10-17, 3.45 on 10-21)
 ROD_FREE  = 3.60 / 2   # part that turns on a phi3 rod: great wheel, drum, minute wheel, hammer (was 3.3; 3.5 on 10-12)
 BRG_R     = 10.4 / 2   # 623ZZ pocket (was 10.1; 10.2 on 10-12, 10.3 on 10-17)
 M3_R      = 3.50 / 2   # M3 clearance: plates, pillars, standoffs, spacers, wall frame, dial, drum flange (was 3.4)
