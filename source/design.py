@@ -122,8 +122,11 @@ def pair(wheel, pinion):
 
 # 2026-10-23: 72/12 -> 63/21 (same centre distance 63 mm). With a 1 kg weight the escape arbor did not turn;
 # halving the drum-to-centre ratio (6 -> 3) doubles the torque everywhere downstream. Run time 54 h -> 27 h.
-great = Gear("great", 63, 1.5, -0.15, G, 9.0, 14.0)
-c_pin = Gear("centre pinion", 21, 1.5, 0.15, C, 7.0, 15.0)
+# 2026-10-26: 63/21 -> 60/24 and a larger drum (cord radius 20.5 -> 24.0). The torque at the escape wheel is set by
+# how fast the weight falls; 60/24 with the larger drum gives 60.3 mm/h (was 42.9), i.e. 1.41x the torque, and
+# still runs about 24.5 h on 1.49 m of drop (limits asked for: at least 24 h, at most 1.5 m).
+great = Gear("great", 60, 1.5, -0.15, G, 9.0, 14.0)
+c_pin = Gear("centre pinion", 24, 1.5, 0.15, C, 7.0, 15.0)
 c_whl = Gear("centre wheel", 96, 1.0, -0.45, C, 2.0, 7.0)
 t_pin = Gear("third pinion", 8, 1.0, 0.45, T, 1.5, 15.5)
 t_whl = Gear("third wheel", 80, 1.0, -0.45, T, 15.5, 20.5)
@@ -158,9 +161,16 @@ def check_pair(wheel, pinion, steps=48):
 
 
 # ---------------------------------------------------------------- escapement (Graham deadbeat)
-LIFT = radians(3.0)       # anchor rotation during impulse on each pallet
+# 2026-10-26: lift 3.0 -> 2.0 deg and drop 2.0 -> 2.25 deg, plus a knee in the tooth back (ESC_KNEE below).
+# - Lift: the pendulum has to swing past let-off, (LIFT + LOCK) / 2 = 2.25 -> 1.75 deg, so it keeps going with less
+#   energy per beat (simulation: about 22 % less weight needed, more with friction on the locking faces).
+# - Drop / knee: on the return swing the entry pallet's let-off corner passes the back of the tooth that has just
+#   dropped off it. That gap was only 0.26 mm, and a print 0.1 mm oversize on wheel and anchor (which also moves the
+#   locked wheel back) closed it and jammed the escapement in the 2D check. With the knee and 2.25 deg of drop the
+#   cycle still works with the wheel 0.18 mm and the anchor 0.12 mm oversize (or 0.18 / 0.12 undersize).
+LIFT = radians(2.0)       # anchor rotation during impulse on each pallet
 LOCK = radians(1.5)
-DROP = radians(2.0)       # escape-wheel free travel between pallets
+DROP = radians(2.25)      # escape-wheel free travel between pallets
 PITCH = 2 * pi / N_ESC
 PH_UE = (LIFT - LOCK) / 2       # entry unlock (anchor angle, CCW +)
 PH_LE = -(LIFT + LOCK) / 2      # entry let-off
@@ -238,15 +248,32 @@ def anchor_polygon():
 ESC_ROOT = 24.0
 ESC_LAND = 0.5 / RW
 ESC_UNDERCUT = radians(8)
-ESC_BACK = radians(20)
+ESC_BACK = radians(28)    # 2026-10-26: below the knee (was 20, straight from the land)
+ESC_KNEE = 1.2            # depth of the knee in the back flank (0 = straight back, as before 2026-10-26)
+ESC_BACK_TIP = radians(0) # back-flank angle above the knee: radial, so the top 1.2 mm of the tooth stays thin
 
 
 def esc_tooth():
+    """[leading tip, land end, (knee), back root, front root] in wheel-local polar layout."""
     h = RW - ESC_ROOT
-    front_root = h * tan(ESC_UNDERCUT) / ESC_ROOT
-    back_root = ESC_LAND + h * tan(ESC_BACK) / ESC_ROOT
     pol = lambda rho, a: (rho * cos(a), rho * sin(a))
-    return [pol(RW, 0), pol(RW, ESC_LAND), pol(ESC_ROOT, back_root), pol(ESC_ROOT, front_root)]
+    front_root = h * tan(ESC_UNDERCUT) / ESC_ROOT
+    if ESC_KNEE <= 0:
+        back_root = ESC_LAND + h * tan(ESC_BACK) / ESC_ROOT
+        return [pol(RW, 0), pol(RW, ESC_LAND), pol(ESC_ROOT, back_root), pol(ESC_ROOT, front_root)]
+    rk = RW - ESC_KNEE
+    knee = ESC_LAND + ESC_KNEE * tan(ESC_BACK_TIP) / rk
+    back_root = knee + (rk - ESC_ROOT) * tan(ESC_BACK) / ESC_ROOT
+    return [pol(RW, 0), pol(RW, ESC_LAND), pol(rk, knee), pol(ESC_ROOT, back_root), pol(ESC_ROOT, front_root)]
+
+
+def esc_tooth_sim():
+    """convex upper part of the tooth for the simulator (only the top of the tooth ever meets the pallets)."""
+    t = esc_tooth()
+    if len(t) == 4: return t
+    rk = RW - ESC_KNEE
+    fa = ESC_KNEE * tan(ESC_UNDERCUT) / rk
+    return [t[0], t[1], t[2], (rk * cos(fa), rk * sin(fa))]
 
 
 # phase: at the reference pose (a = 0, anchor centred) one tooth rests on the entry impulse face
@@ -266,7 +293,7 @@ def esc_polygon():
     t = esc_tooth(); pts = []
     for k in range(N_ESC):
         a = ESC_PHASE + k * PITCH
-        pts += [rot(t[3], a), rot(t[0], a), rot(t[1], a), rot(t[2], a)]
+        pts += [rot(t[-1], a)] + [rot(q, a) for q in t[:-1]]
     return Polygon(pts)
 
 
@@ -363,9 +390,9 @@ PEND_T = 1.0
 PEND_L = 9806.65 * (PEND_T / (2 * pi))**2     # 248.4 mm equivalent length
 BOB_Y = 250.0                                 # bob centre below pivot (rating nut adjusts)
 PEND_Z = -13.75
-DRUM_R = 20.0
+DRUM_R = 23.5                                 # 2026-10-26: 20.0 -> 23.5
 CORD_R = DRUM_R + 0.5
-DRUM_TURNS = 9.0
+DRUM_TURNS = 9.8                              # phi1 cord: 7 turns on the 7 mm barrel + 2.8 on a second layer = 1.49 m, 24.5 h
 WEIGHT_X = G[0] - CORD_R
 WEIGHT_Z = 26.5
 

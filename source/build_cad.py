@@ -177,7 +177,7 @@ PEG_R, PEG_A = 26.0, [radians(60 + 120 * k) for k in range(3)]
 for a in PEG_A:
     gw = gw.cut(cyl(G[0] + PEG_R * cos(a), G[1] + PEG_R * sin(a), 2.6 + X, 8, 15))
 gw = gw.cut(cyl(G[0], G[1], ROD_FREE, -1, 20))
-add("great_wheel", "一番車 63枚 (m1.5)", gw, group="great", color="gear1", print_rot=("x", 180))
+add("great_wheel", "一番車 60枚 (m1.5)", gw, group="great", color="gear1", print_rot=("x", 180))
 
 # 2026-10-23: the ratchet slipped backwards under the weight. The tooth faces were radial, so the load had no
 # component holding the pawls in and only the thin spring arms kept them engaged. Now the faces are undercut by 12 deg
@@ -225,9 +225,11 @@ for a in PEG_A:
     click = click.fuse(cyl(G[0] + PEG_R * cos(a), G[1] + PEG_R * sin(a), 2.45, 9.4, Z_CL0 + 0.5))
 add("click_plate", "コハゼ板（一体ばね爪×3）", click, group="great", color="accent", print_rot=("x", 180))
 
-FL_R = 23.5
+# 2026-10-26: barrel r 20.0 -> 23.5 (cord radius 24.0), flanges r 23.5 -> 27.5. The cone under the rear flange keeps
+# about the same overhang as before (4 mm over 3 mm); the barrel is 7.0 mm wide (was 7.5).
+FL_R = D.DRUM_R + 4.0
 drum_a = prism_poly(ratchet2d(), 14.6, 20.1, at=G).fuse(cyl(G[0], G[1], FL_R, 20.0, 21.5)) \
-    .fuse(cone(G[0], G[1], FL_R, D.DRUM_R, 21.5, 24.0)).fuse(cyl(G[0], G[1], D.DRUM_R, 24.0, 31.5))
+    .fuse(cone(G[0], G[1], FL_R, D.DRUM_R, 21.5, 24.5)).fuse(cyl(G[0], G[1], D.DRUM_R, 24.5, 31.5))
 drum_b = cyl(G[0], G[1], FL_R, 31.5, 34.0).fuse(cyl(G[0], G[1], 8.0, 34.0, 35.6)).fuse(cyl(G[0], G[1], 6.0, 35.6, 41.6)) \
     .fuse(prism_poly(hexagon(10.0), 41.6, 53.0, at=G))
 for k in range(3):
@@ -235,7 +237,8 @@ for k in range(3):
     x, y = G[0] + 12 * cos(a), G[1] + 12 * sin(a)
     drum_a = drum_a.cut(cyl(x, y, TAP3_R, 22.0, 32))
     drum_b = drum_b.cut(cyl(x, y, M3_R, 31, 35)).cut(cone(x, y, M3_R, 3.3, 32.4, 34.01))
-drum_b = drum_b.cut(cyl(G[0] + 21.6 * cos(radians(200)), G[1] + 21.6 * sin(radians(200)), 1.0, 31, 35))
+CORD_HOLE_R = D.DRUM_R + 1.6   # cord tie hole just outside the barrel
+drum_b = drum_b.cut(cyl(G[0] + CORD_HOLE_R * cos(radians(200)), G[1] + CORD_HOLE_R * sin(radians(200)), 1.0, 31, 35))
 drum_a = drum_a.cut(cyl(G[0], G[1], ROD_FREE, 10, 40))
 drum_b = drum_b.cut(cyl(G[0], G[1], ROD_FREE, 30, 60))
 add("drum_core", "巻胴（ラチェットつき）", drum_a, group="drum", color="drum", print_rot=("x", 180))
@@ -245,7 +248,7 @@ add("drum_front", "巻胴 前フランジ（六角巻き軸）", drum_b, group="
 # pockets start outside the centre pinion so the pinion (21 teeth since 2026-10-23) never overhangs a pocket
 cp = gear_solid(D.c_whl).cut(spoke_pockets(C, max(14.5, D.c_pin.ra + 1.5), D.c_whl.rf - 3.5, 6, 5.0, 2, 7))
 cp = cp.fuse(gear_solid(D.c_pin)).fuse(cyl(C[0], C[1], 4.0, 15.0, 23.8)).cut(cyl(C[0], C[1], ROD_PRESS, 0, 30))
-add("centre_wheel", "二番車 96枚＋カナ21枚", cp, group="centre", color="gear2")
+add("centre_wheel", "二番車 96枚＋カナ24枚", cp, group="centre", color="gear2")
 add("spacer_C_rear", "スペーサ 1.7 mm", tube(C[0], C[1], TIP_R, 1.6 + X, 0.3, 2.0), group="centre", color="pillar")
 
 cam = prism_poly(D.cam_polygon(), D.CAM_Z[0], D.CAM_Z[1], at=C).fuse(cyl(C[0], C[1], 4.0, D.CAM_Z[1], 35.7)).cut(cyl(C[0], C[1], ROD_PRESS, 20, 40))
