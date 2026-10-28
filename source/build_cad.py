@@ -104,6 +104,7 @@ TAP4_R    = 3.50 / 2   # M4 pilot: bell post, pendulum rod into the hanger (was 
 X         = 0.2 / 2    # every other bore and pin hole: +0.2 on the diameter
 PEND_M4 = 0.2 / 2      # 2026-10-23: M4 holes of the pendulum (rod into the hanger, bob and rating-nut bores) another +0.2
 HANG_M4 = 0.2 / 2      # 2026-10-26: the rod hole in the hanger another +0.2 (phi 3.7 -> 3.9)
+DRUM_TAP_R = 3.10 / 2  # 2026-10-28: M3 tapping screws into the drum were too tight (stripped while tightening): 2.8 -> 3.1
 HEX_M3, HEX_M4, HEX_KEY = 5.9, 7.3, 10.5   # across flats: M3 nut (wall frame), M4 nut (rating nut), winding key (was 5.8 / 7.2 / 10.4)
 TIP_R = 2.7
 
@@ -236,7 +237,7 @@ drum_b = cyl(G[0], G[1], FL_R, 31.5, 34.0).fuse(cyl(G[0], G[1], 8.0, 34.0, 35.6)
 for k in range(3):
     a = radians(90 + 120 * k)
     x, y = G[0] + 12 * cos(a), G[1] + 12 * sin(a)
-    drum_a = drum_a.cut(cyl(x, y, TAP3_R, 22.0, 32))
+    drum_a = drum_a.cut(cyl(x, y, DRUM_TAP_R, 22.0, 32))
     drum_b = drum_b.cut(cyl(x, y, M3_R, 31, 35)).cut(cone(x, y, M3_R, 3.3, 32.4, 34.01))
 CORD_HOLE_R = D.DRUM_R + 1.6   # cord tie hole just outside the barrel
 drum_b = drum_b.cut(cyl(G[0] + CORD_HOLE_R * cos(radians(200)), G[1] + CORD_HOLE_R * sin(radians(200)), 1.0, 31, 35))
@@ -267,7 +268,13 @@ add("spacer_E_rear", "スペーサ 8.7 mm", tube(E[0], E[1], TIP_R, 1.6 + X, 0.3
 
 # 2026-10-23: the 27 mm press along the whole anchor bore was too tight. Press only in the pallet body (z 8.5-14.5);
 # the hub towards the front bearing gets the running size as a relief.
-an = prism_poly(D.anchor_polygon(), 8.5, 14.5, at=A).fuse(cyl(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 14.5)).cut(cyl(A[0], A[1], ROD_FREE, 14.5, 40))
+def anchor_solid(poly):
+    return prism_poly(poly, 8.5, 14.5, at=A).fuse(cyl(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 14.5)).cut(cyl(A[0], A[1], ROD_FREE, 14.5, 40))
+an = anchor_solid(D.anchor_polygon())
+# 2026-10-28: spare anchors for adjusting the depth of engagement on the real clock (extras/, not in the parts list).
+# "deep_0.2" is laid out for a wheel 0.2 mm further away, so it reaches 0.2 mm (centre distance) deeper into the
+# real wheel; use it if the escape wheel runs through (teeth slip past the pallets). "shallow_0.2" if it jams.
+ANCHOR_VARIANTS = {"deep_0.2": 0.2, "deep_0.4": 0.4, "shallow_0.2": -0.2}
 add("anchor", "アンクル（グラハム式デッドビート）", an, group="anchor", color="anchor")
 add("spacer_A_rear", "スペーサ 8.2 mm", tube(A[0], A[1], TIP_R, 1.6 + X, 0.3, 8.5), group="anchor", color="pillar")
 
@@ -442,6 +449,12 @@ if __name__ == "__main__":
                 cq.exporters.export(cq.Workplane(obj=s), f"{OUT}/parts_stl/{key_}.stl", tolerance=0.02, angularTolerance=0.15)
                 bb = s.BoundingBox()
                 bom.append(dict(file=key_, ja=p["ja"], size=[round(bb.xlen, 1), round(bb.ylen, 1), round(bb.zlen, 1)], vol=round(p["vol"] / 1000, 1)))
+        os.makedirs(f"{OUT}/extras", exist_ok=True)
+        for nm, sh in ANCHOR_VARIANTS.items():
+            DV = D.variant(A_DIST="RW * sqrt(2) + %g" % sh)
+            sv = print_oriented(dict(solid=anchor_solid(DV.anchor_polygon()), print_rot=None))
+            cq.exporters.export(cq.Workplane(obj=sv), f"{OUT}/extras/anchor_{nm}.step")
+            cq.exporters.export(cq.Workplane(obj=sv), f"{OUT}/extras/anchor_{nm}.stl", tolerance=0.02, angularTolerance=0.15)
         asm.save(f"{OUT}/pendulum_clock_assembly.step")
         json.dump(bom, open(f"{OUT}/bom_print.json", "w"), ensure_ascii=False, indent=1)
         print("exported", len(bom), "printable part files")

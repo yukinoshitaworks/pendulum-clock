@@ -39,14 +39,15 @@ def inv(a):
 
 
 class Gear:
-    def __init__(self, name, z, m, x, center, z0, z1):
+    def __init__(self, name, z, m, x, center, z0, z1, bl=BACKLASH):
         self.name, self.z, self.m, self.x = name, z, m, x
+        self.bl = bl
         self.center, self.z0, self.z1 = center, z0, z1
         self.r = m * z / 2
         self.rb = self.r * cos(ALPHA)
         self.ra = self.r + m * (1 + x)
         self.rf = self.r - m * (1.25 - x)
-        self.s = m * (pi / 2 + 2 * x * tan(ALPHA)) - BACKLASH
+        self.s = m * (pi / 2 + 2 * x * tan(ALPHA)) - bl
         self.phase = 0.0
 
     def half(self, rho):
@@ -125,8 +126,10 @@ def pair(wheel, pinion):
 # 2026-10-26: 63/21 -> 60/24 and a larger drum (cord radius 20.5 -> 24.0). The torque at the escape wheel is set by
 # how fast the weight falls; 60/24 with the larger drum gives 60.3 mm/h (was 42.9), i.e. 1.41x the torque, and
 # still runs about 24.5 h on 1.49 m of drop (limits asked for: at least 24 h, at most 1.5 m).
-great = Gear("great", 60, 1.5, -0.15, G, 9.0, 14.0)
-c_pin = Gear("centre pinion", 24, 1.5, 0.15, C, 7.0, 15.0)
+# 2026-10-28: the great wheel / centre pinion mesh felt tight in the clock. Tooth thinning 0.12 -> 0.25 mm on each
+# (backlash at the pitch circle 0.24 -> 0.50 mm); centre distance unchanged.
+great = Gear("great", 60, 1.5, -0.15, G, 9.0, 14.0, bl=0.25)
+c_pin = Gear("centre pinion", 24, 1.5, 0.15, C, 7.0, 15.0, bl=0.25)
 c_whl = Gear("centre wheel", 96, 1.0, -0.45, C, 2.0, 7.0)
 t_pin = Gear("third pinion", 8, 1.0, 0.45, T, 1.5, 15.5)
 t_whl = Gear("third wheel", 80, 1.0, -0.45, T, 15.5, 20.5)
@@ -161,16 +164,16 @@ def check_pair(wheel, pinion, steps=48):
 
 
 # ---------------------------------------------------------------- escapement (Graham deadbeat)
-# 2026-10-26: lift 3.0 -> 2.0 deg and drop 2.0 -> 2.25 deg, plus a knee in the tooth back (ESC_KNEE below).
-# - Lift: the pendulum has to swing past let-off, (LIFT + LOCK) / 2 = 2.25 -> 1.75 deg, so it keeps going with less
-#   energy per beat (simulation: about 22 % less weight needed, more with friction on the locking faces).
-# - Drop / knee: on the return swing the entry pallet's let-off corner passes the back of the tooth that has just
-#   dropped off it. That gap was only 0.26 mm, and a print 0.1 mm oversize on wheel and anchor (which also moves the
-#   locked wheel back) closed it and jammed the escapement in the 2D check. With the knee and 2.25 deg of drop the
-#   cycle still works with the wheel 0.18 mm and the anchor 0.12 mm oversize (or 0.18 / 0.12 undersize).
+# 2026-10-26: lift 3.0 -> 2.0 deg, drop 2.0 -> 2.25 deg and a knee in the tooth back, so that the entry pallet's
+#   let-off corner clears the back of the tooth that has just dropped off it even when the parts print oversize.
+# 2026-10-28: with those parts the escape wheel ran through (teeth slipping past the pallets). The top 1.2 mm of the
+#   teeth was only 0.3-0.5 mm wide -- thinner than one extrusion line -- so it printed short or not at all, and the
+#   1.5 deg lock (0.8 mm) was used up. Now the top of the tooth is 0.8 mm wide all the way down to the knee, the lock
+#   is 2.0 deg (1.05 mm) and the drop 2.75 deg (to pay for the wider tooth top). 2D check: works with the anchor
+#   0.3 mm nearer to / 0.4 mm further from the wheel than designed, also with tips 0.2 mm short.
 LIFT = radians(2.0)       # anchor rotation during impulse on each pallet
-LOCK = radians(1.5)
-DROP = radians(2.25)      # escape-wheel free travel between pallets
+LOCK = radians(2.0)
+DROP = radians(2.75)      # escape-wheel free travel between pallets
 PITCH = 2 * pi / N_ESC
 PH_UE = (LIFT - LOCK) / 2       # entry unlock (anchor angle, CCW +)
 PH_LE = -(LIFT + LOCK) / 2      # entry let-off
@@ -246,11 +249,11 @@ def anchor_polygon():
 
 # escape tooth (wheel-local, leading corner of tooth 0 at angle 0 on the tip circle; wheel turns CW)
 ESC_ROOT = 24.0
-ESC_LAND = 0.5 / RW
-ESC_UNDERCUT = radians(8)
-ESC_BACK = radians(28)    # 2026-10-26: below the knee (was 20, straight from the land)
+ESC_LAND = 0.8 / RW       # 2026-10-28: 0.5 -> 0.8 (printable: two extrusion lines)
+ESC_UNDERCUT = radians(4) # 2026-10-28: 8 -> 4, so the tooth does not get thinner below the tip
+ESC_BACK = radians(30)    # below the knee (20 straight from the land before 2026-10-26, 28 on 10-26)
 ESC_KNEE = 1.2            # depth of the knee in the back flank (0 = straight back, as before 2026-10-26)
-ESC_BACK_TIP = radians(0) # back-flank angle above the knee: radial, so the top 1.2 mm of the tooth stays thin
+ESC_BACK_TIP = radians(4) # back-flank angle above the knee: parallel to the front, the top 1.2 mm stays 0.8 mm wide
 
 
 def esc_tooth():
@@ -395,6 +398,20 @@ CORD_R = DRUM_R + 0.5
 DRUM_TURNS = 9.8                              # phi1 cord: 7 turns on the 7 mm barrel + 2.8 on a second layer = 1.49 m, 24.5 h
 WEIGHT_X = G[0] - CORD_R
 WEIGHT_Z = 26.5
+
+def variant(**over):
+    """This module re-run with some constants replaced, e.g. variant(A_DIST="RW * sqrt(2) + 0.2").
+    Used for the anchor variants: an anchor laid out for a wheel 0.2 mm further away sits 0.2 mm deeper in the real one."""
+    import re, types
+    marker = "\nif __name" + "__ =="            # split before the script part (spelled so this line does not match)
+    src = open(__file__, encoding="utf-8").read().split(marker)[0]
+    for k, v in over.items():
+        src, n = re.subn(r"^%s = .*$" % k, "%s = %s" % (k, v), src, count=1, flags=re.M)
+        assert n == 1, k
+    m = types.ModuleType("design_variant"); m.__dict__["__file__"] = __file__
+    exec(compile(src, __file__, "exec"), m.__dict__)
+    return m
+
 
 if __name__ == "__main__":
     print("T", T, "A", A, "H", H)
