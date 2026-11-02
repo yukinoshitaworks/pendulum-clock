@@ -171,8 +171,11 @@ def check_pair(wheel, pinion, steps=48):
 #   1.5 deg lock (0.8 mm) was used up. Now the top of the tooth is 0.8 mm wide all the way down to the knee, the lock
 #   is 2.0 deg (1.05 mm) and the drop 2.75 deg (to pay for the wider tooth top). 2D check: works with the anchor
 #   0.3 mm nearer to / 0.4 mm further from the wheel than designed, also with tips 0.2 mm short.
+# 2026-11-02: the clock ran but stopped after about 30 s: when the drive dipped, the swing did not reach let-off and a
+#   tooth tip stayed on the pallet's let-off corner. Lock 2.0 -> 1.75 deg brings let-off from 2.0 to 1.875 deg and cuts
+#   the energy needed per beat by about 18 %; the 2D window stays -0.3 .. +0.4 mm (-0.3 .. +0.3 with tips 0.2 mm short).
 LIFT = radians(2.0)       # anchor rotation during impulse on each pallet
-LOCK = radians(2.0)
+LOCK = radians(1.75)
 DROP = radians(2.75)      # escape-wheel free travel between pallets
 PITCH = 2 * pi / N_ESC
 PH_UE = (LIFT - LOCK) / 2       # entry unlock (anchor angle, CCW +)
