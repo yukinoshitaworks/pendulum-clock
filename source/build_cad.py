@@ -103,10 +103,24 @@ TAP3_R    = 2.80 / 2   # M3 self-tapping pilot (was 2.6)
 TAP4_R    = 3.50 / 2   # M4 pilot: bell post, pendulum rod into the hanger (was 3.3 / 3.4)
 X         = 0.2 / 2    # every other bore and pin hole: +0.2 on the diameter
 PEND_M4 = 0.2 / 2      # 2026-10-23: M4 holes of the pendulum (rod into the hanger, bob and rating-nut bores) another +0.2
-HANG_ROD_R = 4.5 / 2   # 2026-10-30: rod hole in the hanger phi 4.5 (3.7 on 10-23, 3.9 on 10-26), as asked
+# hanger rod hole: 3.7 (10-23), 3.9 (10-26), 4.5 (10-30); since 11-05 a clamped groove, see HANG_ROD_D
 DRUM_TAP_R = 3.10 / 2  # 2026-10-28: M3 tapping screws into the drum were too tight (stripped while tightening): 2.8 -> 3.1
 HEX_M3, HEX_M4, HEX_KEY = 5.9, 7.3, 10.5   # across flats: M3 nut (wall frame), M4 nut (rating nut), winding key (was 5.8 / 7.2 / 10.4)
 TIP_R = 2.7
+# 2026-11-05: faces that run against a bearing now touch it only on a phi 4.6 x 0.6 mm shoulder. A 623ZZ's inner ring
+# is about phi 5.2 across; the phi 5.4 spacer ends (and the phi 8 hubs of the anchor and the strike cam) reached the
+# shield / outer ring, which stand still, so every arbor could rub whenever its end shake took up.
+SH_R, SH_L = 4.6 / 2, 0.6
+def tube_sh(x, y, ro, ri, z0, z1, rear=True):
+    """spacer tube with the bearing shoulder at its rear (z0) or front (z1) end"""
+    if rear:
+        return tube(x, y, ro, ri, z0 + SH_L, z1).fuse(tube(x, y, SH_R, ri, z0, z0 + SH_L + 0.01))
+    return tube(x, y, ro, ri, z0, z1 - SH_L).fuse(tube(x, y, SH_R, ri, z1 - SH_L - 0.01, z1))
+def hub_sh(x, y, ro, z0, z1, rear=False):
+    """solid hub ending in the bearing shoulder"""
+    if rear:
+        return cyl(x, y, ro, z0 + SH_L, z1).fuse(cyl(x, y, SH_R, z0, z0 + SH_L + 0.01))
+    return cyl(x, y, ro, z0, z1 - SH_L).fuse(cyl(x, y, SH_R, z1 - SH_L - 0.01, z1))
 
 # ------------------------------------------------------------------ frame
 frame_segs = [((0, G[1]), (0, 116)), (P[0], P[1]), (T, E), (H, E), (C, P[2]), (C, P[3]),
@@ -251,32 +265,32 @@ add("drum_front", "巻胴 前フランジ（六角巻き軸）", drum_b, group="
 cp = gear_solid(D.c_whl).cut(spoke_pockets(C, max(14.5, D.c_pin.ra + 1.5), D.c_whl.rf - 3.5, 6, 5.0, 2, 7))
 cp = cp.fuse(gear_solid(D.c_pin)).fuse(cyl(C[0], C[1], 4.0, 15.0, 23.8)).cut(cyl(C[0], C[1], ROD_PRESS, 0, 30))
 add("centre_wheel", "二番車 96枚＋カナ24枚", cp, group="centre", color="gear2")
-add("spacer_C_rear", "スペーサ 1.7 mm", tube(C[0], C[1], TIP_R, 1.6 + X, 0.3, 2.0), group="centre", color="pillar")
+add("spacer_C_rear", "スペーサ 1.7 mm", tube_sh(C[0], C[1], TIP_R, 1.6 + X, 0.3, 2.0), group="centre", color="pillar", print_rot=("x", 180))
 
-cam = prism_poly(D.cam_polygon(), D.CAM_Z[0], D.CAM_Z[1], at=C).fuse(cyl(C[0], C[1], 4.0, D.CAM_Z[1], 35.7)).cut(cyl(C[0], C[1], ROD_PRESS, 20, 40))
+cam = prism_poly(D.cam_polygon(), D.CAM_Z[0], D.CAM_Z[1], at=C).fuse(hub_sh(C[0], C[1], 4.0, D.CAM_Z[1], 35.7)).cut(cyl(C[0], C[1], ROD_PRESS, 20, 40))
 add("strike_cam", "打鐘カム（1時間で1回転の渦巻き）", cam, group="centre", color="accent")
 
 tp = gear_solid(D.t_whl).cut(spoke_pockets(T, 9.5, D.t_whl.rf - 3.5, 5, 4.5, 15.5, 20.5, phase=radians(18)))
-tp = tp.fuse(gear_solid(D.t_pin)).fuse(cyl(T[0], T[1], TIP_R, 0.3, 1.6)).cut(cyl(T[0], T[1], ROD_PRESS, -1, 30))
+tp = tp.fuse(gear_solid(D.t_pin)).fuse(hub_sh(T[0], T[1], TIP_R, 0.3, 1.6, rear=True)).cut(cyl(T[0], T[1], ROD_PRESS, -1, 30))
 add("third_wheel", "三番車 80枚＋カナ8枚", tp, group="third", color="gear3", print_rot=("x", 180))
-add("spacer_T_front", "スペーサ 15.2 mm", tube(T[0], T[1], TIP_R, 1.6 + X, 20.5, 35.7), group="third", color="pillar")
+add("spacer_T_front", "スペーサ 15.2 mm", tube_sh(T[0], T[1], TIP_R, 1.6 + X, 20.5, 35.7, rear=False), group="third", color="pillar")
 
 ep = prism_poly(D.esc_polygon(), 9.0, 14.0, at=E).cut(spoke_pockets(E, 8.5, 20.5, 5, 4.0, 9, 14, phase=radians(90)))
-ep = ep.fuse(gear_solid(D.e_pin)).fuse(cyl(E[0], E[1], TIP_R, 21.9, 35.7)).cut(cyl(E[0], E[1], ROD_PRESS, 0, 40))
+ep = ep.fuse(gear_solid(D.e_pin)).fuse(hub_sh(E[0], E[1], TIP_R, 21.9, 35.7)).cut(cyl(E[0], E[1], ROD_PRESS, 0, 40))
 add("escape_wheel", "ガンギ車 30枚＋カナ8枚", ep, group="escape", color="escape")
-add("spacer_E_rear", "スペーサ 8.7 mm", tube(E[0], E[1], TIP_R, 1.6 + X, 0.3, 9.0), group="escape", color="pillar")
+add("spacer_E_rear", "スペーサ 8.7 mm", tube_sh(E[0], E[1], TIP_R, 1.6 + X, 0.3, 9.0), group="escape", color="pillar", print_rot=("x", 180))
 
 # 2026-10-23: the 27 mm press along the whole anchor bore was too tight. Press only in the pallet body (z 8.5-14.5);
 # the hub towards the front bearing gets the running size as a relief.
 def anchor_solid(poly):
-    return prism_poly(poly, 8.5, 14.5, at=A).fuse(cyl(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 14.5)).cut(cyl(A[0], A[1], ROD_FREE, 14.5, 40))
+    return prism_poly(poly, 8.5, 14.5, at=A).fuse(hub_sh(A[0], A[1], 4.0, 14.4, 35.7)).cut(cyl(A[0], A[1], ROD_PRESS, 0, 14.5)).cut(cyl(A[0], A[1], ROD_FREE, 14.5, 40))
 an = anchor_solid(D.anchor_polygon())
 # 2026-10-28: spare anchors for adjusting the depth of engagement on the real clock (extras/, not in the parts list).
 # "deep_0.2" is laid out for a wheel 0.2 mm further away, so it reaches 0.2 mm (centre distance) deeper into the
 # real wheel; use it if the escape wheel runs through (teeth slip past the pallets). "shallow_0.2" if it jams.
 ANCHOR_VARIANTS = {"deep_0.2": 0.2, "deep_0.4": 0.4, "shallow_0.2": -0.2}
 add("anchor", "アンクル（グラハム式デッドビート）", an, group="anchor", color="anchor")
-add("spacer_A_rear", "スペーサ 8.2 mm", tube(A[0], A[1], TIP_R, 1.6 + X, 0.3, 8.5), group="anchor", color="pillar")
+add("spacer_A_rear", "スペーサ 8.2 mm", tube_sh(A[0], A[1], TIP_R, 1.6 + X, 0.3, 8.5), group="anchor", color="pillar", print_rot=("x", 180))
 
 # ------------------------------------------------------------------ motion work & hands
 ZO = D.Z_FRONT_OUT
@@ -348,12 +362,27 @@ add("bell_dome", "ベル（金属ドーム φ60・市販品）", bell, group="be
 
 # ------------------------------------------------------------------ pendulum
 PZ = D.PEND_Z
-hz0, hz1 = -20.5, -7.0
+# 2026-11-05: the hanger is now split LEFT / RIGHT through the plane x = 0, which holds both the anchor arbor (along z)
+# and the pendulum rod (along y). Three M3 x 20 screws pull the halves together across a 0.5 mm gap, so the halves
+# clamp both rods instead of relying on a slit clamp (anchor arbor) and a loose phi 4.5 hole (rod). Not glued: loosen
+# the two upper screws to set the beat. Each half prints split face up, so both rod seats are open grooves; the nuts sit
+# on the outer face (no nut pockets, which would need bridging on the bed face).
+# The block is 3.5 mm deeper toward the wall (z -24 .. -7) to make room for the screw that clamps the rod.
+hz0, hz1 = -24.0, -7.0
+HANG_GAP = 0.25                 # each half's split face stands back this much from x = 0
+HANG_ARBOR_D, HANG_ROD_D = 3.2, 4.2
+HANG_SCREWS = [(A[1] + 6.5, (hz0 + hz1) / 2), (A[1] - 6.5, (hz0 + hz1) / 2), (A[1] - 22.0, PZ - 5.5)]   # (y, z)
 hang = cq.Solid.makeBox(16, 41, hz1 - hz0, V(-8, A[1] - 30, hz0))
-hang = hang.cut(cyl(A[0], A[1], ROD_PRESS, hz0 - 1, hz1 + 1)).cut(cq.Solid.makeBox(1.2, 12, 20, V(-0.6, A[1], hz0 - 1)))
-hang = hang.cut(cyl_dir((-10, A[1] + 6.5, PZ), (1, 0, 0), 1.65 + X, 20)).cut(cyl_dir((0, A[1] - 31, PZ), (0, 1, 0), HANG_ROD_R, 21))
+hang = hang.cut(cyl(A[0], A[1], HANG_ARBOR_D / 2, hz0 - 1, hz1 + 1)).cut(cyl_dir((0, A[1] - 31, PZ), (0, 1, 0), HANG_ROD_D / 2, 21))
+for y_, z_ in HANG_SCREWS:
+    hang = hang.cut(cyl_dir((-10, y_, z_), (1, 0, 0), M3_R, 20))
+big_ = 200.0
+hang_l = hang.intersect(cq.Solid.makeBox(big_, big_, big_, V(-big_ - HANG_GAP, A[1] - big_ / 2, -big_ / 2)))
+hang_r = hang.intersect(cq.Solid.makeBox(big_, big_, big_, V(HANG_GAP, A[1] - big_ / 2, -big_ / 2)))
+add("pendulum_hanger_left", "振り子ハンガー 左半分（ねじの頭の側）", hang_l, group="anchor", color="anchor", print_rot=("y", -90))
+add("pendulum_hanger_right", "振り子ハンガー 右半分（ナットの側）", hang_r, group="anchor", color="anchor", print_rot=("y", 90))
 
-# 2026-10-17: the hanger and the bob are printed as two halves split at z = PZ, the plane that holds the axes of their
+# 2026-10-17: the bob (and until 2026-11-05 the hanger) is printed as two halves split at z = PZ, the plane that holds the axes of their
 # horizontal holes. Each half prints split face up, so the holes become open half-round grooves (no support inside),
 # and the halves are glued. Two pegs on the rear half locate the front half.
 PEG_R, PEG_H = 1.5, 2.0
@@ -370,9 +399,7 @@ def split_glue(solid, z, pegs, ja, name, **kw):
     add(name + "_rear", ja + " 後ろ半分（ピンつき・接着）", rear, **kw)
     add(name + "_front", ja + " 前半分（接着）", front, print_rot=("x", 180), **kw)
 
-split_glue(hang, PZ, [(5.2, A[1] - 22.0), (-4.8, A[1] - 4.0)],   # 2026-10-30: lower peg 4.8 -> 5.2 off the wider rod groove
-           "振り子ハンガー", "pendulum_hanger", group="anchor", color="anchor")
-add("pendulum_rod", "M4 全ねじ 285 mm（ハンガーに15 mm差し込む）", cyl_dir((0, A[1] - 300, PZ), (0, 1, 0), 2.0, 285), group="anchor", color="steel", kind="hardware")
+add("pendulum_rod", "M4 全ねじ 285 mm（ハンガーに15 mm差し込み、左右の半分ではさむ）", cyl_dir((0, A[1] - 300, PZ), (0, 1, 0), 2.0, 285), group="anchor", color="steel", kind="hardware")
 BOB_C = (0.0, A[1] - D.BOB_Y)
 bob = cyl(BOB_C[0], BOB_C[1], 35.0, PZ - 8, PZ + 8).cut(cyl_dir((0, BOB_C[1] - 40, PZ), (0, 1, 0), 2.3 + X + PEND_M4, 80))
 for sx in (-1, 1):
