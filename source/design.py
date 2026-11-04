@@ -174,8 +174,11 @@ def check_pair(wheel, pinion, steps=48):
 # 2026-11-02: the clock ran but stopped after about 30 s: when the drive dipped, the swing did not reach let-off and a
 #   tooth tip stayed on the pallet's let-off corner. Lock 2.0 -> 1.75 deg brings let-off from 2.0 to 1.875 deg and cuts
 #   the energy needed per beat by about 18 %; the 2D window stays -0.3 .. +0.4 mm (-0.3 .. +0.3 with tips 0.2 mm short).
-LIFT = radians(2.0)       # anchor rotation during impulse on each pallet
-LOCK = radians(1.75)
+# 2026-11-05: lift 2.0 -> 1.5 and lock 1.75 -> 1.5 deg: let-off 1.875 -> 1.5 deg, about 36 % less energy needed per beat
+#   (with friction on the locking faces; 17 % less in the friction-free simulation). Together with the 12 deg undercut
+#   below, the 2D window is -0.2 .. +0.5 mm (-0.3 .. +0.2 with tips 0.2 mm short).
+LIFT = radians(1.5)       # anchor rotation during impulse on each pallet
+LOCK = radians(1.5)
 DROP = radians(2.75)      # escape-wheel free travel between pallets
 PITCH = 2 * pi / N_ESC
 PH_UE = (LIFT - LOCK) / 2       # entry unlock (anchor angle, CCW +)
@@ -253,10 +256,11 @@ def anchor_polygon():
 # escape tooth (wheel-local, leading corner of tooth 0 at angle 0 on the tip circle; wheel turns CW)
 ESC_ROOT = 24.0
 ESC_LAND = 0.8 / RW       # 2026-10-28: 0.5 -> 0.8 (printable: two extrusion lines)
-ESC_UNDERCUT = radians(4) # 2026-10-28: 8 -> 4, so the tooth does not get thinner below the tip
+ESC_UNDERCUT = radians(12) # 2026-10-28: 8 -> 4; 2026-11-05: 4 -> 12. At 4 deg the pallet's locking corner passed only
+                          # 0.005-0.017 mm from the tooth front during the supplementary arc (0.07-0.09 mm at 12 deg).
 ESC_BACK = radians(30)    # below the knee (20 straight from the land before 2026-10-26, 28 on 10-26)
 ESC_KNEE = 1.2            # depth of the knee in the back flank (0 = straight back, as before 2026-10-26)
-ESC_BACK_TIP = radians(4) # back-flank angle above the knee: parallel to the front, the top 1.2 mm stays 0.8 mm wide
+ESC_BACK_TIP = radians(12) # back-flank angle above the knee: parallel to the front, the top 1.2 mm stays 0.8 mm wide
 
 
 def esc_tooth():
